@@ -1,2 +1,2 @@
 # My-Shiny-Apps
- Madhulika's shiny apps
+ My sample or exploratory shiny apps.
