@@ -1,0 +1,14 @@
+name: python_packages_info
+title: python_packages_info
+username:
+account: madhulikatanuboddi
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 5183378
+bundleId: 5281676
+url: https://madhulikatanuboddi.shinyapps.io/python_packages_info/
+when: 1637609636.3655
+lastSyncTime: 1637609636.36552
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: app_temp.R|R_Playground.R|radio_buttons.R|select_input.R

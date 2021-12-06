@@ -1,0 +1,14 @@
+name: my-shiny-app
+title: My-Shiny-App
+username: madhulika
+account: madhulika
+server: beta.rstudioconnect.com
+hostUrl: https://beta.rstudioconnect.com/__api__
+appId: 17171
+bundleId: 72121
+url: https://beta.rstudioconnect.com/content/49bdbbff-5003-497b-996e-45f839570491/
+when: 1637607771.86426
+lastSyncTime: 1637607771.86427
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: app_temp.R|R_Playground.R|radio_buttons.R|select_input.R
