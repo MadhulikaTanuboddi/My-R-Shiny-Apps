@@ -8,13 +8,19 @@ library(tidyverse)
 library(ggplot2)
 library(leaflet)
 library(shinyBS)
+library(bslib)
+library(thematic)
 
 # Load data ----
 cafires <- read_csv("cafires.csv")
 
+# Call thematic_shiny before app launch to set the theming defaults for all the plots in the app
+thematic_shiny(font = "auto")
+
 # UI for application
 ui <- fluidPage(
-
+    theme = bs_theme(version = 5, bootswatch = "minty"),
+    
     # Application title
     titlePanel("California Wildfires: Historical Data"),
 
@@ -51,7 +57,7 @@ ui <- fluidPage(
 
         # Show a plot of the generated distribution
         mainPanel(
-           tabsetPanel(type = "tabs",
+           tabsetPanel(type = "pills",
                        tabPanel("County Level Data",
                                 h3("Acrage Burned Over Years"),
                                 plotOutput("acrePlot"),
@@ -80,6 +86,7 @@ server <- function(input, output, session) {
      cafires %>%
       select(ArchiveYear, AcresBurned, CrewsInvolved, Engines, Fatalities, Injuries, StructuresDamaged, StructuresDestroyed) %>%
       group_by(ArchiveYear) %>% summarise(across(everything(), ~ sum(.x, na.rm = TRUE))) %>%
+      # TODO: Consolidate the mutate in to sumTable. Use column names instead of column number. length, count, summarise
       mutate((cafires %>% group_by(ArchiveYear) %>% summarise(NumOfFires = n()))[2]) %>% relocate(NumOfFires, .after = ArchiveYear)
     
     output$summaryTable <- DT::renderDataTable({
@@ -101,7 +108,7 @@ server <- function(input, output, session) {
     })
 
     ## COUNTY TAB
-    # Filter data from slider input range
+    # Filter data from slider input range - using eventReactive
     fire_years <- eventReactive(input$submit,{
       cafires %>% 
         filter(ArchiveYear >= input$slider_year[1], ArchiveYear <= input$slider_year[2] & Counties == input$County) 
@@ -112,6 +119,7 @@ server <- function(input, output, session) {
     data_AcresBurned <- reactive({
       aggregate(fire_years()$AcresBurned, by=list(fire_years()$ArchiveYear), FUN=sum, na.rm=TRUE)
     })
+    
 
     # Output acres burned area chart
     output$acrePlot <- renderPlot({
@@ -134,7 +142,7 @@ server <- function(input, output, session) {
     })
     
 
-    ## INTRACTIVE MAP TAB
+    ## INTERACTIVE MAP TAB
     points <- reactive({
       cafires %>%
         filter(ArchiveYear >= input$slider_year[1] & ArchiveYear <= input$slider_year[2]) %>%
