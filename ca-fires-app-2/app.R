@@ -14,6 +14,15 @@ library(thematic)
 # Load data ----
 cafires <- read_csv("cafires.csv")
 
+# Fetch required data for summary ----
+sumTable <- 
+  cafires %>%
+  select(ArchiveYear, AcresBurned, CrewsInvolved, Engines, Fatalities, Injuries, StructuresDamaged, StructuresDestroyed) %>%
+  group_by(ArchiveYear) %>% summarise(across(everything(), ~ sum(.x, na.rm = TRUE))) %>%
+  # TODO: Consolidate the mutate in to sumTable. Use column names instead of column number. length, count, summarise
+  mutate((cafires %>% group_by(ArchiveYear) %>% summarise(NumOfFires = n()))[2]) %>% relocate(NumOfFires, .after = ArchiveYear)
+
+
 # Call thematic_shiny before app launch to set the theming defaults for all the plots in the app
 thematic_shiny(font = "auto")
 
@@ -46,11 +55,12 @@ ui <- fluidPage(
             ),
           
            actionButton("submit", label = "Generate Plot"),
+           br(),
            
            # Include clarifying text ----
            helpText("Note: while the County level and Interactive map tabs will show only the specified",
                     "number of observations, the Summary tab will still be based",
-                    "on the full dataset."),
+                    "on the full dataset and does not rely on shiny inputs"),
         ),
 
 
@@ -60,19 +70,19 @@ ui <- fluidPage(
            tabsetPanel(type = "pills",
                        tabPanel("County Level Data",
                                 h3("Acrage Burned Over Years"),
-                                plotOutput("acrePlot"),
+                                plotOutput("acres_plot"),
                                 h3("Number of Fires Per Year"),
-                                plotOutput("numberPlot")
+                                plotOutput("fires_plot")
                                 ),
                        tabPanel("Interactive Map",
                                 h3("Interactive Map of Fire Activity"),
-                                leafletOutput("camap")
+                                leafletOutput("ca_map")
                                 ),
                        tabPanel("Summary",
                                 h3("Key Summary Statistics"),
-                                DT::dataTableOutput("summaryTable"),
+                                DT::dataTableOutput("summary_table"),
                                 h3("List of All Fires"),
-                                DT::dataTableOutput('contents')
+                                DT::dataTableOutput('dt_table')
                        )
            )
         )
@@ -81,48 +91,23 @@ ui <- fluidPage(
 
 # Define server logic 
 server <- function(input, output, session) {
-  
-    sumTable <- 
-     cafires %>%
-      select(ArchiveYear, AcresBurned, CrewsInvolved, Engines, Fatalities, Injuries, StructuresDamaged, StructuresDestroyed) %>%
-      group_by(ArchiveYear) %>% summarise(across(everything(), ~ sum(.x, na.rm = TRUE))) %>%
-      # TODO: Consolidate the mutate in to sumTable. Use column names instead of column number. length, count, summarise
-      mutate((cafires %>% group_by(ArchiveYear) %>% summarise(NumOfFires = n()))[2]) %>% relocate(NumOfFires, .after = ArchiveYear)
+  ## COUNTY TAB
+     data_years <- reactive(cafires %>% 
+                             filter(ArchiveYear >= input$slider_year[1], ArchiveYear <= input$slider_year[2] 
+                                    & Counties == input$County))
     
-    output$summaryTable <- DT::renderDataTable({
-      DT::datatable(sumTable, options = list(orderClasses = TRUE))
-    })
-
-    # Display table data from select and relevant columns
-    display_data <- 
-      cafires %>% select(Name, AcresBurned, ArchiveYear, CalFireIncident,
-                          Counties, CrewsInvolved, Dozers, Engines,
-                          Fatalities, Helicopters, Injuries, Longitude,
-                          Latitude, MajorIncident, StructuresDamaged,
-                          StructuresDestroyed)
-  
-   
-    # Output contents table
-    output$contents <- DT::renderDataTable({
-      display_data
-    })
-
-    ## COUNTY TAB
     # Filter data from slider input range - using eventReactive
     fire_years <- eventReactive(input$submit,{
-      cafires %>% 
-        filter(ArchiveYear >= input$slider_year[1], ArchiveYear <= input$slider_year[2] & Counties == input$County) 
+      data_years()
     })
     
-
     # Sum up acres burned per year
     data_AcresBurned <- reactive({
       aggregate(fire_years()$AcresBurned, by=list(fire_years()$ArchiveYear), FUN=sum, na.rm=TRUE)
     })
-    
 
     # Output acres burned area chart
-    output$acrePlot <- renderPlot({
+    output$acres_plot <- renderPlot({
       ggplot(data_AcresBurned(),
              aes(x=data_AcresBurned()$Group.1,
                  y=data_AcresBurned()$x))+
@@ -132,7 +117,7 @@ server <- function(input, output, session) {
     })
     
     # Output number of fires plot
-    output$numberPlot <- renderPlot({
+    output$fires_plot <- renderPlot({
       plot (as.factor(fire_years()$ArchiveYear), ylab='Number of Fires')
     })
 
@@ -150,7 +135,7 @@ server <- function(input, output, session) {
         select(Longitude, Latitude)
     })
 
-    output$camap <- renderLeaflet({
+    output$ca_map <- renderLeaflet({
       fire_dt <- fire_years()
       leaflet() %>%
         setView(lat = 36.778259, lng = -119.417931, zoom = 5) %>%
@@ -165,8 +150,41 @@ server <- function(input, output, session) {
                                       "Fatalities:", fire_years()$Fatalities, "</br>",
                                       "</p>")
                           )
-
     })
+    
+  ## SUMMARY TAB
+    output$summary_table <- DT::renderDataTable({
+      DT::datatable(sumTable, options = list(orderClasses = TRUE))
+    })
+    
+    # Display table data from select and relevant columns
+    display_data <- 
+      cafires %>% select(Name, AcresBurned, ArchiveYear, CalFireIncident,
+                         Counties, CrewsInvolved, Dozers, Engines,
+                         Fatalities, Helicopters, Injuries, Longitude,
+                         Latitude, MajorIncident, StructuresDamaged,
+                         StructuresDestroyed)
+    
+    #TODO - WIP
+    # Display ggplot summary graph with acres burned over years
+    # a_data <- tibble(a_year,a_acres)
+    # output$statePlot <- renderPlot({
+    #   ggplot(a_data, aes(x=a_year, y=a_acres)) +
+    #     geom_point(alpha = 0.5) +
+    #     xlab("Year") +
+    #     ylab("Acres Burned") +
+    #     geom_smooth(method=lm, colour = "red", fill = "mediumpurple1")
+    #   DT::datatable(sumTable, options = list(orderClasses = TRUE))
+    # })
+    # ggplot(mtcars, aes(x=mpg, y=cyl)) + geom_point()
+    
+    
+    
+    # Output contents table
+    output$dt_table <- DT::renderDataTable({
+      display_data
+    })
+    
 
 }
 
