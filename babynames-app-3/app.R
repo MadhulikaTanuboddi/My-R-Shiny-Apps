@@ -20,7 +20,7 @@ years <- unique(baby_data$Year)
 # UI ----------------------------------------------------------------
 ui <- fluidPage(
   # App title -------------------------------------------------------
-  titlePanel("US Baby Names trend from 1880 to 2017"), 
+  titlePanel("USA Baby Names trend from 1880 to 2017"), 
   
   # Sidebar layout with a input and output definitions --------------
   sidebarLayout(
@@ -44,7 +44,18 @@ ui <- fluidPage(
       #               sort(unique(baby_data$Name)),
       #                     selected = "Anna", multiple = FALSE),
       
-      textInput("name", "Type a name", "Anna"),
+      #textInput("name", "Type a name", "Anna"),
+      #selectInput("name", "Select a name", sort(unique(baby_data$Name)), multiple = TRUE),
+      
+      # selectizeInput(
+      #   'foo', label = NULL, choices = state.name,
+      #   options = list(create = TRUE)
+      # ),
+      
+      selectizeInput("name", label = "Choose a name", choices = sort(unique(baby_data$Name)), options = list(maxOptions = 5)),
+      
+      br(),
+      actionButton("go", "Go!")
       
       
       # checkboxInput("opt1", "Male", FALSE),
@@ -62,13 +73,23 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   selected_years <- reactive(baby_data %>%
                            filter(Year >= input$year[1], Year <= input$year[2], Name == input$name))
-
-  output$plot <- renderPlot({
-    
+  
+  draw_plot <- eventReactive(input$go, {
     ggplot(selected_years(), aes(Year, Count, colour = Sex)) +
       geom_line() +
       labs(y = "Number of selected name occurences")
-  }, res = 96)
+  })
+
+  # output$plot <- renderPlot({
+  # 
+  #  ggplot(selected_years(), aes(Year, Count, colour = Sex)) +
+  #   geom_line() +
+  #   labs(y = "Number of selected name occurences")
+  # }, res = 96)
+
+  output$plot <- renderPlot({
+   draw_plot()
+  })
 }
 
 shinyApp(ui, server)
