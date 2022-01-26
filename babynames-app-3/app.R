@@ -9,9 +9,9 @@ library(babynames)
 baby_data <- as_tibble(babynames)
 
 # Data cleaning
-# baby_data <- baby_data %>%
-#   rename(year = Year, sex = Sex, name = Name, n = Count, prop = Proportion)
-colnames(baby_data) <- c("Year", "Sex", "Name", "Count", "Proportion")
+baby_data <- baby_data %>%
+  rename(Year = year, Sex = sex, Name = name, Count = n, Proportion = prop)
+#colnames(baby_data) <- c("Year", "Sex", "Name", "Count", "Proportion")
 
 # Determine years in data -------------------------------------------
 years <- unique(baby_data$Year)
@@ -36,30 +36,11 @@ ui <- fluidPage(
                   sep = "",
                   value = range(years)),
       
-      # selectInput("name",
-      #             label = "Select a name",
-      #             names
-                  
-      # selectInput("name", "Choose a name:",
-      #               sort(unique(baby_data$Name)),
-      #                     selected = "Anna", multiple = FALSE),
-      
-      #textInput("name", "Type a name", "Anna"),
-      #selectInput("name", "Select a name", sort(unique(baby_data$Name)), multiple = TRUE),
-      
-      # selectizeInput(
-      #   'foo', label = NULL, choices = state.name,
-      #   options = list(create = TRUE)
-      # ),
-      
-      selectizeInput("name", label = "Choose a name", choices = sort(unique(baby_data$Name)), options = list(maxOptions = 5)),
+      selectizeInput('name', 'Choose a name', choices = NULL, multiple = TRUE),
       
       br(),
       actionButton("go", "Go!")
       
-      
-      # checkboxInput("opt1", "Male", FALSE),
-      # checkboxInput("opt2", "Female", FALSE),
     ),
     
     # Output --------------------------------------------------------
@@ -71,22 +52,22 @@ ui <- fluidPage(
 
 
 server <- function(input, output, session) {
+  updateSelectizeInput(session, 'name', choices = sort(unique(baby_data$Name)), selected = 'Anna', server = TRUE)
+  
+  
   selected_years <- reactive(baby_data %>%
                            filter(Year >= input$year[1], Year <= input$year[2], Name == input$name))
+
+ 
   
   draw_plot <- eventReactive(input$go, {
-    ggplot(selected_years(), aes(Year, Count, colour = Sex)) +
-      geom_line() +
-      labs(y = "Number of selected name occurences")
+    ggplot(selected_years(), aes(Year, weight = Count, fill = paste(Name, Sex))) +
+      #ggplot(selected_years(), aes(Year)) +
+      #geom_line() + geom_point() +
+      geom_histogram(binwidth = 1) +
+      labs(y = "Number of selected name occurences") + xlim(input$year[1], input$year[2]) 
   })
-
-  # output$plot <- renderPlot({
-  # 
-  #  ggplot(selected_years(), aes(Year, Count, colour = Sex)) +
-  #   geom_line() +
-  #   labs(y = "Number of selected name occurences")
-  # }, res = 96)
-
+  
   output$plot <- renderPlot({
    draw_plot()
   })

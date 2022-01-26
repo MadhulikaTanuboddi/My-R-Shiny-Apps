@@ -31,6 +31,7 @@ baby_data
 
 # Retrieve specific row based on a condition
 baby_data_filter<- filter(baby_data, Name %in% c("Ashley", "Ashleigh"))
+baby_data_filter<- filter(baby_data, Name %in% c("Manoj"))
 head(baby_data_filter)
 tail(baby_data_filter)
 
