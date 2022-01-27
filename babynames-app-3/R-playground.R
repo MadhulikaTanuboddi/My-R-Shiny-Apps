@@ -52,4 +52,4 @@ top_twenty_baby$Sex <- as.factor(top_twenty_baby$Sex)
 
 # App test commands
 selected_years <- baby_data %>%
-                             filter(year >= 1880, year <= 2017, name == "Anna")
+                             filter(year >= 1990, year <= 2017, name == "Mary")

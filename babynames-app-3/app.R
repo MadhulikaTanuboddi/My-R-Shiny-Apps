@@ -54,7 +54,7 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   updateSelectizeInput(session, 'name', choices = sort(unique(baby_data$Name)), selected = 'Anna', server = TRUE)
   
-  
+  # Reactive and Event Reactive
   selected_years <- reactive(baby_data %>%
                            filter(Year >= input$year[1], Year <= input$year[2], Name == input$name))
 
@@ -62,11 +62,30 @@ server <- function(input, output, session) {
   
   draw_plot <- eventReactive(input$go, {
     ggplot(selected_years(), aes(Year, weight = Count, fill = paste(Name, Sex))) +
-      #ggplot(selected_years(), aes(Year)) +
-      #geom_line() + geom_point() +
       geom_histogram(binwidth = 1) +
       labs(y = "Number of selected name occurences") + xlim(input$year[1], input$year[2]) 
   })
+  
+  # Reactive and Observe
+  observe({
+    req(input$go)
+    if(nrow(selected_years()) >= 30) {
+      message("Hooray! You found a popular name")
+    }
+    else {
+      message("Oops! This name is not quite popular")
+    }
+  })
+  
+  # Observe Event
+  # observeEvent(input$go, {
+  #   showModal(modalDialog(
+  #     title = "Hooray! You found a popular name",
+  #     "This is an important message!",
+  #     easyClose = TRUE
+  #   ))
+  # })
+  # 
   
   output$plot <- renderPlot({
    draw_plot()
