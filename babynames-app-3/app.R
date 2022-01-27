@@ -56,7 +56,7 @@ server <- function(input, output, session) {
   
   # Reactive and Event Reactive
   selected_years <- reactive(baby_data %>%
-                           filter(Year >= input$year[1], Year <= input$year[2], Name == input$name))
+                           filter(Year >= input$year[1], Year <= input$year[2], Name %in% input$name))
 
  
   
